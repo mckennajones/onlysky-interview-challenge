@@ -135,6 +135,9 @@ def logout():
 def account():
     return render_template('account.html', user=current_user)
 
+@app.route('/about/')
+def about():
+    return render_template('about.html')
 
 @app.before_first_request
 def initialize_data():
