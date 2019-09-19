@@ -105,7 +105,8 @@ class LoginForm(FlaskForm):
 
 class NewPostForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired()])
-    body = PasswordField('Body', validators=[DataRequired(), Length(min = 10)])
+    body = StringField('Body', validators=[DataRequired(), Length(min = 10)])
+    category = StringField('Category', validators=[DataRequired()])
 
     def __init__(self, *args, **kwargs):
         FlaskForm.__init__(self, *args, **kwargs)
@@ -157,7 +158,16 @@ def newPost():
     form = NewPostForm()
 
     if form.validate_on_submit():
-        #TODO
+        category = Category.query.filter_by(name=form.category.data).one_or_none()
+        if category is None:
+            category = Category(name=form.category.data)
+            db.session.add(category)
+            db.session.commit()
+
+        post = Post(title=form.title.data, body=form.body.data, category=category)
+
+        db.session.add(post)
+        db.session.commit()
 
         flash('New Post Created successfully.')
         return redirect(request.args.get('next') or url_for('index'))

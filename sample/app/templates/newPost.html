@@ -10,8 +10,10 @@
             </div>
             <div class="card-block">
                 <form method="POST">
+                    {{ form.hidden_tag() }}
                     {{ render_field(form.title) }}
                     {{ render_field(form.body) }}
+                    {{ render_field(form.category) }}
                     <div class="text-right">
                         <button type="submit" class="btn btn-primary">Create</button>
                     </div>
