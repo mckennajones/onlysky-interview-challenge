@@ -9,7 +9,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
 from werkzeug.debug import DebuggedApplication
 from wtforms import PasswordField, StringField
-from wtforms.validators import DataRequired
+from wtforms.validators import DataRequired, Length
 
 from app import commands
 
@@ -31,12 +31,11 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
 
-
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(user_id) if user_id else None
 
-
+# Classes
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True)
@@ -81,12 +80,6 @@ class Category(db.Model):
     def __repr__(self):
         return '<Category %r>' % self.name
 
-
-@app.route("/")
-def index():
-    return render_template('index.html')
-
-
 class LoginForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired()])
     password = PasswordField('Password', validators=[DataRequired()])
@@ -109,6 +102,26 @@ class LoginForm(FlaskForm):
 
         self.password.errors.append('Invalid email and/or password specified.')
         return False
+
+class NewPostForm(FlaskForm):
+    title = StringField('Title', validators=[DataRequired()])
+    body = PasswordField('Body', validators=[DataRequired(), Length(min = 10)])
+
+    def __init__(self, *args, **kwargs):
+        FlaskForm.__init__(self, *args, **kwargs)
+        # self.user = None
+
+    def validate(self):
+        valid = FlaskForm.validate(self)
+        if not valid:
+            return False
+        
+        return True
+
+# Routes
+@app.route("/")
+def index():
+    return render_template('index.html')
 
 
 @app.route('/auth/login/', methods=['GET', 'POST'])
@@ -138,6 +151,18 @@ def account():
 @app.route('/about/')
 def about():
     return render_template('about.html')
+
+@app.route('/new-post/', methods=['GET', 'POST'])
+def newPost():
+    form = NewPostForm()
+
+    if form.validate_on_submit():
+        #TODO
+
+        flash('New Post Created successfully.')
+        return redirect(request.args.get('next') or url_for('index'))
+
+    return render_template('newPost.html', form=form, user=current_user)
 
 @app.before_first_request
 def initialize_data():
