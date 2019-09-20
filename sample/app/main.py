@@ -144,9 +144,10 @@ class NewPostForm(FlaskForm):
 
 # Routes
 @app.route("/")
-def index():
-    posts = Post.query.order_by(Post.pub_date.desc())
-    return render_template('index.html', posts=posts)
+@app.route('/page/<int:pageNum>')
+def index(pageNum=1):
+    posts = Post.query.order_by(Post.pub_date.desc()).paginate(pageNum, 10, False).items
+    return render_template('index.html', posts=posts, page=pageNum)
 
 
 @app.route('/auth/login/', methods=['GET', 'POST'])
