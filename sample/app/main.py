@@ -8,8 +8,10 @@ from flask_login import current_user, login_required, login_user, LoginManager, 
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import FlaskForm
 from werkzeug.debug import DebuggedApplication
-from wtforms import PasswordField, StringField
-from wtforms.validators import DataRequired, Length
+from wtforms import PasswordField, StringField, HiddenField, IntegerField
+from wtforms.validators import DataRequired, Length, NumberRange
+from wtforms.widgets import HiddenInput
+from wtforms.ext.sqlalchemy.fields import QuerySelectField
 
 from app import commands
 
@@ -103,10 +105,26 @@ class LoginForm(FlaskForm):
         self.password.errors.append('Invalid email and/or password specified.')
         return False
 
+def GetCategories():
+    return Category.query.order_by('name')
+
 class NewPostForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired()])
-    body = StringField('Body', validators=[DataRequired(), Length(min = 10)])
-    category = StringField('Category', validators=[DataRequired()])
+    body = HiddenField('Body', validators=[DataRequired()])
+    length = IntegerField(
+                label='',
+                validators=[
+                    NumberRange(min=10)
+                ],
+                widget=HiddenInput()
+     )
+    category = QuerySelectField(
+                    'Category', 
+                    query_factory=GetCategories, 
+                    get_label='name',
+                    allow_blank=True, 
+                    blank_text='--Create New--')
+    newCategory = StringField('New Category')
 
     def __init__(self, *args, **kwargs):
         FlaskForm.__init__(self, *args, **kwargs)
@@ -114,9 +132,14 @@ class NewPostForm(FlaskForm):
 
     def validate(self):
         valid = FlaskForm.validate(self)
+        
+        # An empty Quill editor has length 1
+        if self.length.data < 11:
+            flash('Blog posts must be at least 10 characters.', 'danger')
+
         if not valid:
             return False
-        
+
         return True
 
 # Routes
@@ -131,7 +154,7 @@ def login():
 
     if form.validate_on_submit():
         login_user(form.user)
-        flash('Logged in successfully.')
+        flash('Logged in successfully.', 'success')
         return redirect(request.args.get('next') or url_for('index'))
 
     return render_template('login.html', form=form)
@@ -156,11 +179,12 @@ def about():
 @app.route('/new-post/', methods=['GET', 'POST'])
 def newPost():
     form = NewPostForm()
+    
+    category = form.category.data
 
     if form.validate_on_submit():
-        category = Category.query.filter_by(name=form.category.data).one_or_none()
         if category is None:
-            category = Category(name=form.category.data)
+            category = Category(name=form.newCategory.data)
             db.session.add(category)
             db.session.commit()
 
@@ -169,7 +193,7 @@ def newPost():
         db.session.add(post)
         db.session.commit()
 
-        flash('New Post Created successfully.')
+        flash('New Post created successfully.', 'success')
         return redirect(request.args.get('next') or url_for('index'))
 
     return render_template('newPost.html', form=form, user=current_user)
