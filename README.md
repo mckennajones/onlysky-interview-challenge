@@ -38,7 +38,7 @@ All the code currently lives in sample/app/main.py
 ## How to regenerate the db schema
 
     $ make up
-    $ make dump-db-schema -- separate terminal
+    $ make dump-schema -- separate terminal
 
 ## How to access the server from your browser
 - localhost (no port should be specified)

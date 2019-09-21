@@ -60,13 +60,19 @@ class Post(db.Model):
     category = db.relationship(
         'Category', backref=db.backref('posts', lazy='dynamic'))
 
-    def __init__(self, title, body, category, pub_date=None):
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user = db.relationship(
+        'User', backref=db.backref('posts', lazy='dynamic')
+    )
+
+    def __init__(self, title, body, category, user, pub_date=None):
         self.title = title
         self.body = body
         if pub_date is None:
             pub_date = datetime.utcnow()
         self.pub_date = pub_date
         self.category = category
+        self.user = user
 
     def __repr__(self):
         return '<Post %r>' % self.title
@@ -190,7 +196,7 @@ def newPost():
             db.session.add(category)
             db.session.commit()
 
-        post = Post(title=form.title.data, body=form.body.data, category=category)
+        post = Post(title=form.title.data, body=form.body.data, category=category, user=current_user)
 
         db.session.add(post)
         db.session.commit()
