@@ -2,10 +2,11 @@
 
 from datetime import datetime
 import os
-
+from calendar import month_name
 from flask import flash, Flask, redirect, render_template, request, url_for
 from flask_login import current_user, login_required, login_user, LoginManager, logout_user, UserMixin
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import extract, exists
 from flask_wtf import FlaskForm
 from werkzeug.debug import DebuggedApplication
 from wtforms import PasswordField, StringField, HiddenField, IntegerField
@@ -149,11 +150,29 @@ class NewPostForm(FlaskForm):
         return True
 
 # Routes
-@app.route("/")
-@app.route('/page/<int:pageNum>')
-def index(pageNum=1):
-    posts = Post.query.order_by(Post.pub_date.desc()).paginate(pageNum, 10, False).items
-    return render_template('index.html', posts=posts, page=pageNum)
+@app.route('/<int:year>/<int:month>/')
+@app.route('/')
+def index(year=None, month=None):
+    args = request.args
+
+    page = int(args.get('page')) if args.get('page') is not None else None
+    
+    if year is not None and month is not None:
+        flash(f'Showing posts from {month_name[month]}, {year}', 'info')
+        posts = Post.query.filter(extract('year', Post.pub_date) == year, extract('month', Post.pub_date) == month)
+    else:
+        posts = Post.query.filter(Post.pub_date < datetime.now())
+
+    posts = posts.order_by(Post.pub_date.desc()).paginate(page=page, per_page=10)
+
+    archiveDates = db.session.query(extract('year', Post.pub_date).label('year'),
+                                    extract('month', Post.pub_date).label('month'))\
+                              .order_by(Post.pub_date.desc())\
+                              .group_by(extract('year', Post.pub_date), 
+                                        extract('month', Post.pub_date))\
+                              .all()
+
+    return render_template('index.html', posts=posts, dates=archiveDates, months=month_name)
 
 
 @app.route('/auth/login/', methods=['GET', 'POST'])
@@ -188,9 +207,13 @@ def about():
 def newPost():
     form = NewPostForm()
     
-    category = form.category.data
-
+    if not current_user.is_authenticated:
+        flash('Please login first.', 'warning')
+        return redirect('/auth/login/')
+    
     if form.validate_on_submit():
+        category = form.category.data
+
         if category is None:
             category = Category(name=form.newCategory.data)
             db.session.add(category)

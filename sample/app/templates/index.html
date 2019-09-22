@@ -1,6 +1,6 @@
 {% extends 'blog.html' %}
 {% block content %}
-{% for post in posts %}
+{% for post in posts.items %}
 <div class="blog-post">
     <h2 class="blog-post-title">{{ post.title }}</h2>
     <p class="blog-post-meta">{{ post.pub_date.strftime('%B %d, %Y') }} by <a href="#">{{ post.user.email }}</a></p>
@@ -10,14 +10,16 @@
 {% endfor %}
 
 <nav class="blog-pagination">
-    <a class="btn btn-outline-primary" href="/page/{{ page + 1 }}">Older</a>
-
-    {% if page == 1 %}
-    <a class="btn btn-outline-secondary disabled" href="#">Newer</a>
-    {% elif page == 2 %}
-    <a class="btn btn-outline-primary" href="/">Newer</a>
+    {% if posts.has_next %}
+    <a class="btn btn-outline-primary" href="?page={{ posts.next_num }}">Older</a>
     {% else %}
-    <a class="btn btn-outline-primary" href="/page/{{ page - 1 }}">Newer</a>
+    <a class="btn btn-outline-primary disabled" href="/">Older</a>
+    {% endif %}
+
+    {% if posts.has_prev %}
+    <a class="btn btn-outline-primary" href="?page={{ posts.prev_num }}">Newer</a>
+    {% else %}
+    <a class="btn btn-outline-primary disabled" href="/">Newer</a>
     {% endif %}
 </nav>
 
