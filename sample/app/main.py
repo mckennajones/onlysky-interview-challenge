@@ -143,6 +143,7 @@ class NewPostForm(FlaskForm):
         # An empty Quill editor has length 1
         if self.length.data < 11:
             flash('Blog posts must be at least 10 characters.', 'danger')
+            return False
 
         if not valid:
             return False
